@@ -1,25 +1,31 @@
 # Atelier 3 — Couche Repository Spring Data JPA
 
-## Choix des interfaces
+## 1. Interfaces de repository
 
-| Interface | Étend | Justification |
-|---|---|---|
-| `IAgenceRepository` | `JpaRepository<Agence, Long>` | CRUD, listes, tri, pagination et opérations JPA. |
-| `IEmployeRepository` | `JpaRepository<Employe, Long>` | CRUD, listes, tri, pagination et opérations JPA. |
-| `IVehiculeRepository` | `JpaRepository<Vehicule, Long>` | CRUD, listes, tri, pagination et opérations JPA. |
-| `IEquipementRepository` | `JpaRepository<Equipement, Long>` | CRUD, listes, tri, pagination et opérations JPA. |
-| `IClientRepository` | `JpaRepository<Client, Long>` | CRUD, listes, tri, pagination et opérations JPA. |
-| `IReservationRepository` | `JpaRepository<Reservation, Long>` | CRUD, listes, tri, pagination et opérations JPA. |
-| `IContratRepository` | `JpaRepository<Contrat, Long>` | CRUD, listes, tri, pagination et `saveAndFlush`. |
-| `IPaiementRepository` | `JpaRepository<Paiement, Long>` | Lecture des paiements ; leurs écritures passent par le contrat. |
-| `IMaintenanceRepository` | `JpaRepository<Maintenance, Long>` | CRUD, listes, tri, pagination et opérations JPA. |
+Les neuf repositories du package `tn.esprit.autoloc.repository` étendent `JpaRepository<Entite, Long>` et ne portent pas l’annotation `@Repository` : Spring Data détecte ces interfaces et crée automatiquement leurs implémentations proxy.
 
-`JpaRepository` est retenue car elle réunit le CRUD avec des retours en `List`, le tri, la pagination et les opérations propres à JPA. Les suppressions en lot ne doivent pas être utilisées pour les contrats : elles ne déclenchent ni la cascade ni `orphanRemoval` des paiements.
+| Interface | Entité | Justification |
+| --- | --- | --- |
+| `IAgenceRepository` | `Agence` | CRUD, consultation de la liste des agences, pagination et tri. |
+| `IEmployeRepository` | `Employe` | CRUD et gestion des employés. |
+| `IVehiculeRepository` | `Vehicule` | CRUD et gestion du parc de véhicules. |
+| `IEquipementRepository` | `Equipement` | CRUD des équipements. |
+| `IClientRepository` | `Client` | CRUD, pagination et tri des clients. |
+| `IReservationRepository` | `Reservation` | CRUD des réservations. |
+| `IContratRepository` | `Contrat` | CRUD et opérations de synchronisation comme `flush` et `saveAndFlush`. |
+| `IPaiementRepository` | `Paiement` | Accès et CRUD des paiements ; leur création métier peut être pilotée par le contrat. |
+| `IMaintenanceRepository` | `Maintenance` | CRUD et suivi des opérations de maintenance. |
 
-## Anomalies SonarQube for IDE corrigées
+Toutes les clés primaires sont typées `Long` dans la déclaration demandée : `JpaRepository<Entite, Long>`.
 
-| Anomalie | Règle / explication | Correction apportée |
-|---|---|---|
-| Lombok `@Data` sur une entité liée | `@Data` génère `toString`, `equals` et `hashCode`, qui peuvent parcourir les associations bidirectionnelles. | Les entités utilisent des annotations Lombok ciblées (`@Getter`, `@Setter` et constructeurs). |
-| Injection de dépendance par attribut | Règle S6813 : la dépendance est cachée et ne peut pas être `final`. | Les services utilisent l'injection par constructeur avec `@RequiredArgsConstructor`. |
-| Exception générique lors d'une ressource absente | Règle S112 : une exception générique ne décrit pas la cause fonctionnelle. | Une `ResourceNotFoundException` dédiée est utilisée. |
+## 2. Pourquoi `JpaRepository` plutôt que `CrudRepository` ?
+
+`CrudRepository` fournit les opérations CRUD de base. `JpaRepository` reprend ces opérations et ajoute des fonctionnalités utiles à une application JPA, notamment la pagination et le tri via ses interfaces parentes, ainsi que les opérations de flush et les suppressions en lot. Il permet donc de couvrir les besoins de cette couche avec une interface Spring Data standard, sans implémentation manuelle.
+
+## 3. Attention aux suppressions en lot
+
+`deleteAllInBatch()` exécute une suppression directe en base, sans synchroniser les entités concernées avec le contexte de persistance de l’`EntityManager`. Les cascades JPA `CascadeType.REMOVE` et `orphanRemoval = true` ne sont donc pas appliquées comme lors de la suppression d’entités chargées. Pour préserver les règles métier et les relations entre `Contrat` et `Paiement`, privilégier `delete()` ou `deleteById()` lorsque ces cascades doivent intervenir.
+
+## 4. Lombok et entités JPA
+
+Les entités utilisent `@Getter`, `@Setter`, `@NoArgsConstructor` et `@AllArgsConstructor` au lieu de `@Data`. `@Data` générerait notamment `equals()` et `hashCode()` à partir de tous les champs, ce qui peut être problématique avec les relations JPA bidirectionnelles et le chargement différé. Les accesseurs et constructeurs sont donc déclarés séparément, sans générer automatiquement ces méthodes à partir de toutes les propriétés.
