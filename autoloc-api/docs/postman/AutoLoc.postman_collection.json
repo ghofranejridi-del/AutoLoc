@@ -1,0 +1,39 @@
+{
+  "info": {
+    "name": "AutoLoc",
+    "description": "Collection de démonstration Atelier 5. Importer dans Postman et régler baseUrl à http://localhost:8080.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "contratId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Contrats",
+      "item": [
+        { "name": "Lister les contrats", "request": { "method": "GET", "url": "{{baseUrl}}/api/contrats" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Statut 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Consulter un contrat absent", "request": { "method": "GET", "url": "{{baseUrl}}/api/contrats/999999" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Statut 404', () => pm.response.to.have.status(404));"] } }] },
+        { "name": "Créer un contrat", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"dateSignature\": \"2026-10-19\",\n  \"montantTotal\": 480.00,\n  \"valide\": true\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/contrats" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Statut 201', () => pm.response.to.have.status(201));", "if (pm.response.code === 201) pm.environment.set('contratId', pm.response.json().idContrat);"] } }] },
+        { "name": "Créer un contrat invalide", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/contrats" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Statut 400', () => pm.response.to.have.status(400));"] } }] },
+        { "name": "Modifier contrat absent", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"dateSignature\":\"2026-10-19\",\"montantTotal\":520.00,\"valide\":true}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/contrats/999999" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Statut 404', () => pm.response.to.have.status(404));"] } }] },
+        { "name": "Supprimer contrat absent", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/contrats/999999" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Statut 404', () => pm.response.to.have.status(404));"] } }] }
+      ]
+    },
+    {
+      "name": "Paiements",
+      "item": [
+        { "name": "Lister les paiements", "request": { "method": "GET", "url": "{{baseUrl}}/api/paiements" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Statut 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Consulter un paiement absent", "request": { "method": "GET", "url": "{{baseUrl}}/api/paiements/999999" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Statut 404', () => pm.response.to.have.status(404));"] } }] },
+        { "name": "POST paiement refusé", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/paiements" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Statut 405', () => pm.response.to.have.status(405));"] } }] }
+      ]
+    },
+    {
+      "name": "Cascade Contrat vers Paiements",
+      "item": [
+        { "name": "Créer un contrat avec deux paiements", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"dateSignature\": \"2026-10-19\",\n  \"montantTotal\": 480.00,\n  \"valide\": true,\n  \"paiements\": [\n    { \"montant\": 150.00, \"datePaiement\": \"2026-10-19\", \"modePaiement\": \"CARTE\" },\n    { \"montant\": 330.00, \"datePaiement\": \"2026-10-20\", \"modePaiement\": \"VIREMENT\" }\n  ]\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/contrats" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Statut 201', () => pm.response.to.have.status(201));", "if (pm.response.code === 201) pm.environment.set('contratId', pm.response.json().idContrat);"] } }] },
+        { "name": "Vérifier la présence des paiements", "request": { "method": "GET", "url": "{{baseUrl}}/api/paiements" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Statut 200', () => pm.response.to.have.status(200));", "pm.test('Deux paiements présents', () => pm.expect(pm.response.json().length).to.be.at.least(2));"] } }] }
+      ]
+    }
+  ]
+}

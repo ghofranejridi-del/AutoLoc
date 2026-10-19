@@ -1,6 +1,7 @@
 package tn.esprit.autoloc.domain;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -37,5 +38,6 @@ public class Contrat {
 
     @OneToMany(mappedBy = "contrat", cascade = CascadeType.ALL,
             orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference("contrat-paiements")
     private List<Paiement> paiements = new ArrayList<>();
 }
